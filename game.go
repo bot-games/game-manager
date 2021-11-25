@@ -8,10 +8,11 @@ import (
 
 type Game interface {
 	InitState() proto.Message
-	GetActions(tickInfo *TickInfo) []string
-	DoAction(tickInfo *TickInfo, action string, data interface{}) (proto.Message, error)
-	IsGameFinished(tickInfo *TickInfo) (bool, uint8, error)
-	SmartGuyTurn(tickInfo *TickInfo) (string, interface{})
+	DecodeState(data []byte) (proto.Message, error)
+	DecodeAction(data []byte) (proto.Message, error)
+	CheckAction(tickInfo *TickInfo, action proto.Message) error
+	ApplyActions(tickInfo *TickInfo, actions []Action) *TickResult
+	SmartGuyTurn(tickInfo *TickInfo) proto.Message
 }
 
 type TickInfo struct {
@@ -22,7 +23,18 @@ type TickInfo struct {
 	Winner    uint8
 	WaitUsers uint8
 	CurUid    uint32
-	Uid1      uint32
-	Uid2      uint32
-	Data      []byte
+	Uids      []uint32
+	State     proto.Message
+}
+
+type Action struct {
+	Uid    uint32
+	Action proto.Message
+}
+
+type TickResult struct {
+	GameFinished    bool
+	Winner          uint8
+	NewState        proto.Message
+	NextTurnPlayers uint8
 }
