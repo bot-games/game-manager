@@ -17,11 +17,8 @@ type Game interface {
 
 type TickInfo struct {
 	Id        uint16
-	GameId    uint32
 	DebugGame bool
 	Finished  time.Time
-	Winner    uint8
-	WaitUsers uint8
 	CurUid    uint32
 	Uids      []uint32
 	State     proto.Message
