@@ -52,6 +52,7 @@ func NewG(game Game, uids []uint32, debug bool, onFinish func(g *gameInstance)) 
 		g.timeoutTimer = time.AfterFunc(turnTimeout, func() {
 			g.mtx.Lock()
 			defer g.mtx.Unlock()
+			defer g.waitUsersCond.Broadcast()
 
 			if g.waitUsers == 0 {
 				return
