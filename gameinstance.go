@@ -48,26 +48,28 @@ func NewG(game Game, uids []uint32, debug bool, onFinish func(g *gameInstance)) 
 		onFinish:      onFinish,
 	}
 
-	g.timeoutTimer = time.AfterFunc(turnTimeout, func() {
-		g.mtx.Lock()
-		defer g.mtx.Unlock()
+	if !debug {
+		g.timeoutTimer = time.AfterFunc(turnTimeout, func() {
+			g.mtx.Lock()
+			defer g.mtx.Unlock()
 
-		if g.waitUsers == 0 {
-			return
-		}
+			if g.waitUsers == 0 {
+				return
+			}
 
-		g.finished = time.Now()
-		g.timeout = g.waitUsers
-		g.winner = 0
-		switch g.waitUsers {
-		case 1:
-			g.winner = 2
-		case 2:
-			g.winner = 1
-		}
+			g.finished = time.Now()
+			g.timeout = g.waitUsers
+			g.winner = 0
+			switch g.waitUsers {
+			case 1:
+				g.winner = 2
+			case 2:
+				g.winner = 1
+			}
 
-		g.onFinish(g)
-	})
+			g.onFinish(g)
+		})
+	}
 
 	return g
 }
@@ -151,7 +153,7 @@ func (g *gameInstance) processCurTick() {
 	}
 
 	nextTick := g.game.ApplyActions(g.getCurTick(0), g.ticks[len(g.ticks)-1].Actions)
-		g.ticks = append(g.ticks, Tick{
+	g.ticks = append(g.ticks, Tick{
 		State: nextTick.NewState,
 	})
 
@@ -165,7 +167,10 @@ func (g *gameInstance) processCurTick() {
 	}
 
 	g.waitUsers = nextTick.NextTurnPlayers
-	g.timeoutTimer.Reset(turnTimeout)
+
+	if !g.debug {
+		g.timeoutTimer.Reset(turnTimeout)
+	}
 }
 
 func (g *gameInstance) getUserMask(uid uint32) uint8 {
