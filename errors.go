@@ -26,7 +26,6 @@ func (e ErrEndOfGame) Error() string {
 
 var (
 	ErrInvalidToken  = errors.New("invalid token")
-	ErrInQueue       = errors.New("the user is already in queue")
 	ErrInvalidGameId = errors.New("invalid game ID")
 	ErrInvalidAction = errors.New("invalid action")
 )

@@ -25,8 +25,8 @@ func (q *Queue) Join(user *User) (<-chan *GameInfo, error) {
 	q.mtx.Lock()
 	defer q.mtx.Unlock()
 
-	if _, exists := q.participants[user.Id]; exists {
-		return nil, ErrInQueue
+	if participant, exists := q.participants[user.Id]; exists {
+		close(participant.ch)
 	}
 
 	participant := &QueueParticipant{
