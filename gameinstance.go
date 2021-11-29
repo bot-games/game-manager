@@ -36,7 +36,7 @@ type Tick struct {
 func NewG(game Game, uids []uint32, debug bool, onFinish func(g *gameInstance)) *gameInstance {
 	mtx := &sync.Mutex{}
 
-	g := &gameInstance{
+	return &gameInstance{
 		game:          game,
 		uuid:          uuid.New(),
 		uids:          uids,
@@ -47,8 +47,14 @@ func NewG(game Game, uids []uint32, debug bool, onFinish func(g *gameInstance)) 
 		debug:         debug,
 		onFinish:      onFinish,
 	}
+}
 
-	if !debug {
+func (g *gameInstance) GetUuid() uuid.UUID {
+	return g.uuid
+}
+
+func (g *gameInstance) Start() {
+	if !g.debug {
 		g.timeoutTimer = time.AfterFunc(turnTimeout, func() {
 			g.mtx.Lock()
 			defer g.mtx.Unlock()
@@ -71,12 +77,6 @@ func NewG(game Game, uids []uint32, debug bool, onFinish func(g *gameInstance)) 
 			g.onFinish(g)
 		})
 	}
-
-	return g
-}
-
-func (g *gameInstance) GetUuid() uuid.UUID {
-	return g.uuid
 }
 
 func (g *gameInstance) WaitTurn(ctx context.Context, uid uint32) (*TickInfo, error) {

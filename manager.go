@@ -90,6 +90,8 @@ func (m *GameManager) CreateGame(ctx context.Context, uids []uint32, debug bool)
 		return nil, err
 	}
 
+	g.Start()
+
 	return res, nil
 }
 
