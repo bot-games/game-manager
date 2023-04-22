@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/proto"
 )
 
 const turnTimeout = 5 * time.Second
@@ -17,6 +17,7 @@ type gameInstance struct {
 	uuid          uuid.UUID
 	uids          []uint32
 	mtx           *sync.Mutex
+	options       proto.Message
 	ticks         []Tick
 	waitUsers     uint8
 	timeoutTimer  *time.Timer
@@ -36,13 +37,16 @@ type Tick struct {
 func NewG(game Game, uids []uint32, debug bool, onFinish func(g *gameInstance)) *gameInstance {
 	mtx := &sync.Mutex{}
 
+	options, state, waitUsers := game.Init()
+
 	return &gameInstance{
 		game:          game,
 		uuid:          uuid.New(),
 		uids:          uids,
 		mtx:           mtx,
-		ticks:         []Tick{{State: game.InitState()}},
-		waitUsers:     3,
+		options:       options,
+		ticks:         []Tick{{State: state}},
+		waitUsers:     waitUsers,
 		waitUsersCond: sync.NewCond(mtx),
 		debug:         debug,
 		onFinish:      onFinish,
@@ -76,6 +80,21 @@ func (g *gameInstance) Start() {
 
 			g.onFinish(g)
 		})
+	}
+
+	if g.debug {
+		go func() {
+			for {
+				tickInfo, err := g.WaitTurn(context.Background(), 0)
+				if err != nil {
+					break
+				}
+
+				if err := g.DoAction(0, g.game.SmartGuyTurn(tickInfo)); err != nil {
+					log.Printf("Cannot process SmartGuy action: %v", err)
+				}
+			}
+		}()
 	}
 }
 
@@ -117,15 +136,6 @@ func (g *gameInstance) DoAction(uid uint32, action proto.Message) error {
 		Action: action,
 	})
 
-	if g.debug && uid != 0 {
-		go func() {
-			if err := g.DoAction(0, g.game.SmartGuyTurn(g.getCurTick(0))); err != nil {
-				log.Printf("Cannot process SmartGuy action: %v", err)
-			}
-		}()
-		return nil
-	}
-
 	if g.waitUsers == 0 {
 		go g.processCurTick()
 	}
@@ -135,12 +145,13 @@ func (g *gameInstance) DoAction(uid uint32, action proto.Message) error {
 
 func (g *gameInstance) getCurTick(uid uint32) *TickInfo {
 	return &TickInfo{
-		Id:        uint16(len(g.ticks) - 1),
-		DebugGame: g.debug,
-		Finished:  g.finished,
-		CurUid:    uid,
-		Uids:      g.uids,
-		State:     proto.Clone(g.ticks[len(g.ticks)-1].State),
+		Id:          uint16(len(g.ticks) - 1),
+		DebugGame:   g.debug,
+		GameOptions: g.options,
+		Finished:    g.finished,
+		CurUid:      uid,
+		Uids:        g.uids,
+		State:       proto.Clone(g.ticks[len(g.ticks)-1].State),
 	}
 }
 

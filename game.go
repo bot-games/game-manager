@@ -3,11 +3,11 @@ package manager
 import (
 	"time"
 
-	"github.com/golang/protobuf/proto"
+	"google.golang.org/protobuf/proto"
 )
 
 type Game interface {
-	InitState() proto.Message
+	Init() (options proto.Message, state proto.Message, waitUsers uint8)
 	DecodeState(data []byte) (proto.Message, error)
 	DecodeAction(data []byte) (proto.Message, error)
 	CheckAction(tickInfo *TickInfo, action proto.Message) error
@@ -16,12 +16,13 @@ type Game interface {
 }
 
 type TickInfo struct {
-	Id        uint16
-	DebugGame bool
-	Finished  time.Time
-	CurUid    uint32
-	Uids      []uint32
-	State     proto.Message
+	Id          uint16
+	DebugGame   bool
+	GameOptions proto.Message
+	Finished    time.Time
+	CurUid      uint32
+	Uids        []uint32
+	State       proto.Message
 }
 
 type Action struct {

@@ -4,34 +4,51 @@ import (
 	"context"
 	"errors"
 	"log"
+	"net/http"
 	"sync"
 	"time"
 
-	"github.com/golang/protobuf/proto"
+	"github.com/go-qbit/rpc/openapi"
 	"github.com/google/uuid"
+	"google.golang.org/protobuf/proto"
 )
 
 type GameManager struct {
+	id        string
+	caption   string
 	game      Game
 	storage   Storage
 	queue     *Queue
 	scheduler Scheduler
+	gameApi   RpcCreator
 	games     map[uuid.UUID]*gameInstance
 	gamesMtx  sync.RWMutex
 }
 
 type GameInfo struct {
-	Uuid  uuid.UUID
-	Debug bool
-	Uids  []uint32
+	Options proto.Message
+	Uuid    uuid.UUID
+	Debug   bool
+	Uids    []uint32
 }
 
-func New(game Game, storage Storage, scheduler Scheduler) *GameManager {
+type RpcCreator func(m *GameManager) GameApi
+
+type GameApi interface {
+	http.Handler
+	GetSwagger(ctx context.Context) *openapi.OpenApi
+	GetPlayerHandler() http.Handler
+}
+
+func New(id, caption string, game Game, storage Storage, scheduler Scheduler, rpc RpcCreator) *GameManager {
 	m := &GameManager{
+		id:        id,
+		caption:   caption,
 		game:      game,
 		storage:   storage,
 		queue:     NewQueue(),
 		scheduler: scheduler,
+		gameApi:   rpc,
 		games:     map[uuid.UUID]*gameInstance{},
 	}
 
@@ -53,6 +70,10 @@ func New(game Game, storage Storage, scheduler Scheduler) *GameManager {
 
 	return m
 }
+
+func (m *GameManager) GetId() string       { return m.id }
+func (m *GameManager) GetCaption() string  { return m.caption }
+func (m *GameManager) GetGameApi() GameApi { return m.gameApi(m) }
 
 func (m *GameManager) CreateGame(ctx context.Context, uids []uint32, debug bool) (*GameInfo, error) {
 	g := NewG(m.game, uids, debug, func(g *gameInstance) {
@@ -80,9 +101,10 @@ func (m *GameManager) CreateGame(ctx context.Context, uids []uint32, debug bool)
 	m.games[g.uuid] = g
 
 	res := &GameInfo{
-		Uuid:  g.uuid,
-		Debug: debug,
-		Uids:  g.uids,
+		Options: g.options,
+		Uuid:    g.uuid,
+		Debug:   debug,
+		Uids:    g.uids,
 	}
 
 	err := m.storage.CreateGame(ctx, res)
