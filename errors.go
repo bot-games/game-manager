@@ -28,4 +28,5 @@ var (
 	ErrInvalidToken  = errors.New("invalid token")
 	ErrInvalidGameId = errors.New("invalid game ID")
 	ErrInvalidAction = errors.New("invalid action")
+	ErrGameFinished  = errors.New("game finished")
 )

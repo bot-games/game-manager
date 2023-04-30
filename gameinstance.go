@@ -121,6 +121,10 @@ func (g *gameInstance) DoAction(uid uint32, action proto.Message) error {
 	g.mtx.Lock()
 	defer g.mtx.Unlock()
 
+	if !g.finished.IsZero() {
+		return ErrGameFinished
+	}
+
 	if g.waitUsers&userMask == 0 {
 		return ErrInvalidAction
 	}
