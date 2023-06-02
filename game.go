@@ -7,7 +7,7 @@ import (
 )
 
 type Game interface {
-	Init() (options proto.Message, state proto.Message, waitUsers uint8)
+	Init() (options proto.Message, state proto.Message, waitUsers uint8, gameData any)
 	DecodeState(data []byte) (proto.Message, error)
 	DecodeAction(data []byte) (proto.Message, error)
 	CheckAction(tickInfo *TickInfo, action proto.Message) error
@@ -23,6 +23,7 @@ type TickInfo struct {
 	CurUid      uint32
 	Uids        []uint32
 	State       proto.Message
+	GameData    any
 }
 
 type Action struct {

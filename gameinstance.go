@@ -18,6 +18,7 @@ type gameInstance struct {
 	uids          []uint32
 	mtx           *sync.Mutex
 	options       proto.Message
+	data          any
 	ticks         []Tick
 	waitUsers     uint8
 	timeoutTimer  *time.Timer
@@ -37,7 +38,7 @@ type Tick struct {
 func NewG(game Game, uids []uint32, debug bool, onFinish func(g *gameInstance)) *gameInstance {
 	mtx := &sync.Mutex{}
 
-	options, state, waitUsers := game.Init()
+	options, state, waitUsers, gameData := game.Init()
 
 	return &gameInstance{
 		game:          game,
@@ -45,6 +46,7 @@ func NewG(game Game, uids []uint32, debug bool, onFinish func(g *gameInstance)) 
 		uids:          uids,
 		mtx:           mtx,
 		options:       options,
+		data:          gameData,
 		ticks:         []Tick{{State: state}},
 		waitUsers:     waitUsers,
 		waitUsersCond: sync.NewCond(mtx),
@@ -156,6 +158,7 @@ func (g *gameInstance) getCurTick(uid uint32) *TickInfo {
 		CurUid:      uid,
 		Uids:        g.uids,
 		State:       proto.Clone(g.ticks[len(g.ticks)-1].State),
+		GameData:    g.data,
 	}
 }
 
