@@ -117,8 +117,8 @@ func (m *GameManager) CreateGame(ctx context.Context, uids []uint32, debug bool)
 	return res, nil
 }
 
-func (m *GameManager) JoinGame(ctx context.Context, token string, debug bool) (*GameInfo, error) {
-	user, err := m.storage.GetUserByToken(ctx, token)
+func (m *GameManager) JoinGame(ctx context.Context, userToken string, debug bool) (*GameInfo, error) {
+	user, err := m.storage.GetUserByToken(ctx, userToken)
 	if err != nil {
 		return nil, err
 	}
@@ -151,6 +151,29 @@ func (m *GameManager) JoinGame(ctx context.Context, token string, debug bool) (*
 		m.queue.Leave(user)
 		return nil, errors.New("disconnected")
 	}
+}
+
+func (m *GameManager) RejoinGame(ctx context.Context, userToken, gameUuid string) (*GameInfo, error) {
+	user, err := m.storage.GetUserByToken(ctx, userToken)
+	if err != nil {
+		return nil, err
+	}
+
+	g, err := m.getGame(gameUuid)
+	if err != nil {
+		return nil, err
+	}
+
+	if !g.finished.IsZero() {
+		return nil, ErrEndOfGame{Winner: g.winner, IsYou: append([]uint32{0}, g.uids...)[g.winner] == user.Id}
+	}
+
+	return &GameInfo{
+		Options: g.options,
+		Uuid:    g.uuid,
+		Debug:   g.debug,
+		Uids:    g.uids,
+	}, nil
 }
 
 func (m *GameManager) WaitTurn(ctx context.Context, userToken, gameUuid string) (*TickInfo, error) {
