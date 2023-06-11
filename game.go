@@ -8,8 +8,8 @@ import (
 
 type Game interface {
 	Init() (options proto.Message, state proto.Message, waitUsers uint8, gameData any)
-	DecodeState(data []byte) (proto.Message, error)
-	DecodeAction(data []byte) (proto.Message, error)
+	//DecodeState(data []byte) (proto.Message, error)
+	//DecodeAction(data []byte) (proto.Message, error)
 	CheckAction(tickInfo *TickInfo, action proto.Message) error
 	ApplyActions(tickInfo *TickInfo, actions []Action) *TickResult
 	SmartGuyTurn(tickInfo *TickInfo) proto.Message
