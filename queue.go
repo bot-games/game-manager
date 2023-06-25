@@ -19,7 +19,7 @@ type QueueParticipant struct {
 
 func NewQueue(id string) *Queue {
 	gaugeQueueSize := prometheus.NewGauge(prometheus.GaugeOpts{
-		Namespace: "game_manager.queue",
+		Namespace: "game_manager_queue",
 		Subsystem: id,
 		Name:      "size",
 	})
