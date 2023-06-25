@@ -3,6 +3,7 @@ package manager
 import (
 	"context"
 	"errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"log"
 	"net/http"
 	"sync"
@@ -14,15 +15,16 @@ import (
 )
 
 type GameManager struct {
-	id        string
-	caption   string
-	game      Game
-	storage   Storage
-	queue     *Queue
-	scheduler Scheduler
-	gameApi   RpcCreator
-	games     map[uuid.UUID]*gameInstance
-	gamesMtx  sync.RWMutex
+	id               string
+	caption          string
+	game             Game
+	storage          Storage
+	queue            *Queue
+	scheduler        Scheduler
+	gameApi          RpcCreator
+	games            map[uuid.UUID]*gameInstance
+	gamesMtx         sync.RWMutex
+	gaugeActiveGames prometheus.Gauge
 }
 
 type GameInfo struct {
@@ -46,10 +48,15 @@ func New(id, caption string, game Game, storage Storage, scheduler Scheduler, rp
 		caption:   caption,
 		game:      game,
 		storage:   storage,
-		queue:     NewQueue(),
+		queue:     NewQueue(id),
 		scheduler: scheduler,
 		gameApi:   rpc,
 		games:     map[uuid.UUID]*gameInstance{},
+		gaugeActiveGames: prometheus.NewGauge(prometheus.GaugeOpts{
+			Namespace: "game_manager",
+			Subsystem: id,
+			Name:      "active_games",
+		}),
 	}
 
 	m.scheduler.SetOnReady(func() {
@@ -94,10 +101,12 @@ func (m *GameManager) CreateGame(ctx context.Context, uids []uint32, debug bool)
 	now := time.Now()
 	for id, g := range m.games {
 		if !g.finished.IsZero() && now.Sub(g.finished) > time.Hour {
+			m.gaugeActiveGames.Dec()
 			delete(m.games, id)
 		}
 	}
 
+	m.gaugeActiveGames.Inc()
 	m.games[g.uuid] = g
 
 	res := &GameInfo{
