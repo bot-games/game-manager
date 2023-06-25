@@ -18,13 +18,16 @@ type QueueParticipant struct {
 }
 
 func NewQueue(id string) *Queue {
+	gaugeQueueSize := prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "game_manager.queue",
+		Subsystem: id,
+		Name:      "size",
+	})
+	prometheus.MustRegister(gaugeQueueSize)
+
 	return &Queue{
-		participants: map[uint32]*QueueParticipant{},
-		gaugeQueueSize: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "game_manager.queue",
-			Subsystem: id,
-			Name:      "size",
-		}),
+		participants:   map[uint32]*QueueParticipant{},
+		gaugeQueueSize: gaugeQueueSize,
 	}
 }
 

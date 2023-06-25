@@ -43,20 +43,23 @@ type GameApi interface {
 }
 
 func New(id, caption string, game Game, storage Storage, scheduler Scheduler, rpc RpcCreator) *GameManager {
+	gaugeActiveGames := prometheus.NewGauge(prometheus.GaugeOpts{
+		Namespace: "game_manager",
+		Subsystem: id,
+		Name:      "active_games",
+	})
+	prometheus.MustRegister(gaugeActiveGames)
+
 	m := &GameManager{
-		id:        id,
-		caption:   caption,
-		game:      game,
-		storage:   storage,
-		queue:     NewQueue(id),
-		scheduler: scheduler,
-		gameApi:   rpc,
-		games:     map[uuid.UUID]*gameInstance{},
-		gaugeActiveGames: prometheus.NewGauge(prometheus.GaugeOpts{
-			Namespace: "game_manager",
-			Subsystem: id,
-			Name:      "active_games",
-		}),
+		id:               id,
+		caption:          caption,
+		game:             game,
+		storage:          storage,
+		queue:            NewQueue(id),
+		scheduler:        scheduler,
+		gameApi:          rpc,
+		games:            map[uuid.UUID]*gameInstance{},
+		gaugeActiveGames: gaugeActiveGames,
 	}
 
 	m.scheduler.SetOnReady(func() {
