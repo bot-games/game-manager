@@ -153,6 +153,7 @@ func (m *GameManager) JoinGame(ctx context.Context, userToken string, debug bool
 	select {
 	case gi, ok := <-ch:
 		if !ok {
+			m.queue.Leave(user)
 			return nil, errors.New("something went wrong")
 		}
 
